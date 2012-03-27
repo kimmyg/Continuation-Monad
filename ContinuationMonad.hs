@@ -11,11 +11,17 @@ instance Monad (Cont k v r) where
 runContinuation :: (t -> r) -> Cont k v r t -> r
 runContinuation k (Cont (c, ms)) = c k
 
---wcm :: Ord k => k -> v -> Cont k v r t -> Cont k v r t
---wcm k v (Cont (c, ms)) = Cont (c, insert k v ms)
+stackLookup :: Ord k => k -> [Map k v] -> [v]
+stackLookup k []     = []
+stackLookup k (m:ms) = case Data.Map.lookup k m of
+  Just v  -> v:(stackLookup k ms)
+  Nothing -> stackLookup k ms
 
---ccm :: Ord k -> k -> Cont k v r t -> Cont k v [v] t
---ccm k Cont (c, ms) = 
+wcm :: Ord k => k -> v -> Cont k v r t -> Cont k v r t
+wcm k v (Cont (c, (m:ms))) = Cont (c, (insert k v m):ms)
+
+ccm :: Ord k => k -> Cont k v r t -> [v]
+ccm k (Cont (c, ms)) = stackLookup k ms
 
 fact :: Int -> Cont k v r Int
 fact 0 = return 1
