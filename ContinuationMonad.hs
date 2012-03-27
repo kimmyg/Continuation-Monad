@@ -2,14 +2,14 @@ module Main where
 import Control.Monad
 import Data.Map
 
-data Cont r t = Cont ((t -> r) -> r)
+data Cont k v r t = Cont (((t -> r) -> r), [(Map k v)])
 
-instance Monad (Cont r) where
-  return x = Cont (\k -> k x)
-  Cont c >>= f = Cont (\k -> c (\x -> let Cont g = f x in g k))
+instance Monad (Cont k v r) where
+  return x = Cont ((\k -> k x), [empty])
+  Cont (c, ms) >>= f = Cont ((\k -> c (\x -> let Cont (g, ms') = f x in g k)), ms)
 
-runContinuation :: (t -> r) -> Cont r t -> r
-runContinuation k (Cont f) = f k
+runContinuation :: (t -> r) -> Cont k v r t -> r
+runContinuation k (Cont (c, ms)) = c k
 
 --wcm :: Ord k -> k -> v -> Cont r -> Cont r
 
