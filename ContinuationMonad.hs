@@ -6,7 +6,7 @@ data Cont k v r t = Cont (((t -> r) -> r), [(Map k v)])
 
 instance Monad (Cont k v r) where
   return x = Cont ((\k -> k x), [empty])
-  Cont (c, ms) >>= f = Cont ((\k -> c (\x -> let Cont (g, ms') = f x in g k)), ms)
+  Cont (c, ms) >>= f = Cont ((\k -> c (\x -> let Cont (g, ms') = f x in g k)), (empty:ms))
 
 runContinuation :: (t -> r) -> Cont k v r t -> r
 runContinuation k (Cont (c, ms)) = c k
@@ -23,13 +23,18 @@ wcm k v (Cont (c, (m:ms))) = Cont (c, (insert k v m):ms)
 ccm :: Ord k => k -> Cont k v r t -> [v]
 ccm k (Cont (c, ms)) = stackLookup k ms
 
-fact :: Int -> Cont k v r Int
+fact :: Int -> Cont String String r Int
 fact 0 = return 1
-fact n = do
+fact n = wcm "fact" (show n) (do
   acc <- fact (n - 1);
-  return (n * acc)
+  return (n * acc))
 
-main = runContinuation print $ fact 5
+fact_tr :: Int -> Int -> Cont String String r Int
+fact_tr 0 acc = return acc
+fact_tr n acc = wcm "fact" (show n) (do
+  fact_tr (n - 1) (n * acc))
+
+main = print $ ccm "fact" (fact_tr 5 1)
 
 {-
 main = runContinuation print $ do
